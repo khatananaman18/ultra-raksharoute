@@ -1,0 +1,97 @@
+export const INDIAN_CITY_PRESETS = [
+  {
+    name: 'Delhi NCR — Connaught Place (Central)',
+    lat: 28.6315,
+    lng: 77.2167,
+    address: 'Inner Circle, Connaught Place, New Delhi',
+  },
+  {
+    name: 'Delhi NCR — AIIMS / South Extension',
+    lat: 28.5672,
+    lng: 77.2100,
+    address: 'Ansari Nagar, Ring Road, New Delhi',
+  },
+  {
+    name: 'Delhi NCR — Saket / Hauz Khas',
+    lat: 28.5245,
+    lng: 77.2066,
+    address: 'Press Enclave Marg, Saket, New Delhi',
+  },
+  {
+    name: 'Delhi NCR — Gurugram DLF Cyber City',
+    lat: 28.4900,
+    lng: 77.0900,
+    address: 'Cyber Hub Phase 2, Gurugram, Haryana',
+  },
+  {
+    name: 'Delhi NCR — Noida Sector 18 Hub',
+    lat: 28.5700,
+    lng: 77.3200,
+    address: 'Sector 18 Atta Market, Noida, Uttar Pradesh',
+  },
+];
+
+export const AMBULANCE_TYPES = [
+  {
+    id: 'ICU Ambulance',
+    name: 'Mobile ICU / Critical Care',
+    category: 'ICU',
+    isICU: true,
+    badge: 'Ventilator & Monitor',
+    description: 'Equipped with transport ventilator, biphasic defibrillator, multipara monitor, and critical care paramedic.',
+    recommendedFor: 'Cardiac arrest, severe stroke, respiratory failure, major polytrauma, ventilated transfers.',
+    icon: 'ActivitySquare',
+    color: 'rose',
+  },
+  {
+    id: 'Advanced Life Support (ALS)',
+    name: 'Advanced Life Support (ALS)',
+    category: 'ALS',
+    isICU: false,
+    badge: 'Defibrillator & ECG',
+    description: 'Equipped with 12-lead ECG, defibrillator, airway management kit, IV medications, and EMT-Advanced crew.',
+    recommendedFor: 'Chest pain, moderate respiratory distress, diabetic ketoacidosis, severe seizures.',
+    icon: 'Zap',
+    color: 'amber',
+  },
+  {
+    id: 'Basic Ambulance (BLS)',
+    name: 'Basic Life Support (BLS)',
+    category: 'BLS',
+    isICU: false,
+    badge: 'Oxygen & First Aid',
+    description: 'Continuous medical oxygen delivery, trauma splints, suction unit, vital signs monitor, and trained first responders.',
+    recommendedFor: 'Fractures, stable emergencies, non-critical injuries, respiratory support.',
+    icon: 'HeartPulse',
+    color: 'sky',
+  },
+  {
+    id: 'Neonatal Ambulance (NICU)',
+    name: 'Neonatal Critical Care (NICU)',
+    category: 'NEONATAL',
+    isICU: true,
+    badge: 'Incubator & NICU Team',
+    description: 'Wired with transport incubator, micro-infusion pumps, neonatal ventilator, and pediatric specialized crew.',
+    recommendedFor: 'Premature newborns, neonatal respiratory distress, infant critical transport.',
+    icon: 'Baby',
+    color: 'emerald',
+  },
+  {
+    id: 'Patient Transport (PTS)',
+    name: 'Patient Transit & Mobility',
+    category: 'PTS',
+    isICU: false,
+    badge: 'Wheelchair / Stretcher',
+    description: 'Hydraulic stretcher, wheelchair lock-in, basic oxygen support for planned medical transfers.',
+    recommendedFor: 'Dialysis trips, post-op discharges, inter-hospital stable transfer.',
+    icon: 'Armchair',
+    color: 'indigo',
+  },
+];
+
+export const EMERGENCY_NUMBERS = [
+  { name: 'National Emergency', number: '112', desc: 'Unified Police, Fire, Ambulance Helpline' },
+  { name: 'Emergency Medical Services', number: '108', desc: 'National Disaster / Public Emergency' },
+  { name: 'Maternal & Child Transit', number: '102', desc: 'Free Pregnant Women & Infant Transfer' },
+  { name: 'AIIMS Apex Trauma Desk', number: '011-2659-4405', desc: '24/7 Level 1 Trauma Center' },
+];

@@ -1,0 +1,16 @@
+{
+  "name": "raksharoute-platform",
+  "version": "1.0.0",
+  "description": "RakshaRoute — India's Intelligent Ambulance Aggregation & Emergency Response Platform",
+  "type": "module",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "node start-dev.js",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "start": "cd server && npm start"
+  },
+  "keywords": ["emergency", "ambulance", "healthtech", "raksharoute", "realtime-dispatch"],
+  "author": "RakshaRoute Engineering Team",
+  "license": "MIT"
+}
