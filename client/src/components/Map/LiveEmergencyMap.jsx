@@ -219,8 +219,8 @@ export default function LiveEmergencyMap({
   routeCoordinates = [],
   className = 'h-96 w-full',
 }) {
-  // Tile Layer Presets
-  const [tileMode, setTileMode] = useState('dark'); // 'dark', 'street', 'voyager'
+  // Real Tile Layer Presets (Zero API key needed, official street & humanitarian maps)
+  const [tileMode, setTileMode] = useState('osm'); // 'osm', 'humanitarian', 'terrain'
 
   // Extract coordinates safely supporting different formats
   const patLat = patientLocation?.location?.lat ?? patientLocation?.lat ?? 28.5672;
@@ -279,17 +279,26 @@ export default function LiveEmergencyMap({
   // Initial center fallback
   const initialCenter = [patLat, patLng];
 
-  // Tile URL configuration
+  // Authentic 100% Free Tile Providers (No API Key Required!)
   const tileConfig = {
-    dark: {
-      url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap',
-    },
-    street: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    osm: {
+      name: 'Real City Streets (OSM)',
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    },
+    humanitarian: {
+      name: 'Humanitarian Emergency (HOT)',
+      url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/">Humanitarian OSM</a>',
+      maxZoom: 19,
     },
   };
+
+  const googleMapsUrl =
+    destLat && destLng
+      ? `https://www.google.com/maps/dir/?api=1&origin=${patLat},${patLng}&destination=${destLat},${destLng}&travelmode=driving`
+      : `https://www.google.com/maps/@${patLat},${patLng},15z`;
 
   return (
     <div className={`relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 ${className}`}>
@@ -495,16 +504,26 @@ export default function LiveEmergencyMap({
       </MapContainer>
 
       {/* Map Control Bar (Top Left) */}
-      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 p-1 rounded-xl shadow-xl">
+      <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 p-1 rounded-xl shadow-2xl">
         <button
           type="button"
-          onClick={() => setTileMode(tileMode === 'dark' ? 'street' : 'dark')}
-          className="px-2.5 py-1 text-[11px] font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition flex items-center gap-1"
-          title="Toggle Map Style"
+          onClick={() => setTileMode(tileMode === 'osm' ? 'humanitarian' : 'osm')}
+          className="px-2.5 py-1 text-[11px] font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700 rounded-lg transition flex items-center gap-1.5"
+          title="Switch Map Layers"
         >
           <Layers className="w-3.5 h-3.5 text-sky-400" />
-          <span>{tileMode === 'dark' ? 'Street View' : 'Dark Mode'}</span>
+          <span>{tileMode === 'osm' ? '🏥 Emergency Relief Layer' : '🗺️ City Streets (OSM)'}</span>
         </button>
+
+        <a
+          href={googleMapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2.5 py-1 text-[11px] font-bold text-emerald-300 hover:text-white bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 rounded-lg transition flex items-center gap-1"
+          title="Open in Official Google Maps"
+        >
+          <span>Google Maps ↗</span>
+        </a>
       </div>
 
       {/* Map Legend (Top Right) */}
