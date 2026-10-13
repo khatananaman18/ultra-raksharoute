@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from '../db/store.js';
 import { INITIAL_HOSPITALS, INITIAL_AMBULANCES, INITIAL_BOOKINGS, INITIAL_FOLLOWUPS, INITIAL_USERS } from '../db/seedData.js';
+import { simulationService } from '../services/simulationService.js';
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.get('/notifications', (req, res) => {
 
 // Reset Demo Environment
 router.post('/reset-demo', (req, res) => {
+  simulationService.stopAllSimulations();
   db.hospitals = JSON.parse(JSON.stringify(INITIAL_HOSPITALS));
   db.ambulances = JSON.parse(JSON.stringify(INITIAL_AMBULANCES));
   db.users = JSON.parse(JSON.stringify(INITIAL_USERS));

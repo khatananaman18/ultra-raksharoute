@@ -107,6 +107,7 @@ class SimulationService {
 
         currentB.currentDistanceKm = distRemaining;
         currentB.currentEtaMinutes = eta;
+        currentB.currentLocation = { lat: point.lat, lng: point.lng };
 
         this.broadcastLocationUpdate(ambulance.id, point.lat, point.lng);
         this.broadcastBookingUpdate(bookingId);
@@ -114,10 +115,12 @@ class SimulationService {
         // Ambulance arrived at patient
         clearInterval(simState.intervalId);
         db.updateAmbulanceLocation(ambulance.id, end.lat, end.lng);
+        currentB.currentLocation = { lat: end.lat, lng: end.lng };
         db.updateBookingStatus(bookingId, 'ARRIVED_PICKUP', {
           note: 'Ambulance has arrived at patient location. Paramedics assessing.',
           currentDistanceKm: 0,
           currentEtaMinutes: 0,
+          currentLocation: { lat: end.lat, lng: end.lng },
         });
         this.broadcastBookingUpdate(bookingId);
 
@@ -173,6 +176,7 @@ class SimulationService {
 
         currentB.currentDistanceKm = distRemaining;
         currentB.currentEtaMinutes = eta;
+        currentB.currentLocation = { lat: point.lat, lng: point.lng };
 
         this.broadcastLocationUpdate(ambulance.id, point.lat, point.lng);
         this.broadcastBookingUpdate(bookingId);
@@ -180,10 +184,12 @@ class SimulationService {
         // Reached hospital
         clearInterval(simState.intervalId);
         db.updateAmbulanceLocation(ambulance.id, end.lat, end.lng);
+        currentB.currentLocation = { lat: end.lat, lng: end.lng };
         db.updateBookingStatus(bookingId, 'ARRIVED_HOSPITAL', {
           note: 'Arrived at Hospital Emergency Department. Handover in progress.',
           currentDistanceKm: 0,
           currentEtaMinutes: 0,
+          currentLocation: { lat: end.lat, lng: end.lng },
         });
         this.broadcastBookingUpdate(bookingId);
 
@@ -217,6 +223,13 @@ class SimulationService {
       if (simState.timeoutId) clearTimeout(simState.timeoutId);
       this.activeSimulations.delete(bookingId);
     }
+  }
+
+  stopAllSimulations() {
+    for (const [id] of this.activeSimulations) {
+      this.stopSimulation(id);
+    }
+    this.activeSimulations.clear();
   }
 
   broadcastBookingUpdate(bookingId) {

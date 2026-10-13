@@ -62,48 +62,43 @@ export default function EmergencyModal({ isOpen, onClose, onBookingCreated, hosp
 
   const handleTriggerSos = async () => {
     setIsSearching(true);
-    setSearchPhaseText('Scanning immediate 5 km radius for active ambulances...');
+    setSearchPhaseText('Scanning dynamic perimeter for best available ambulance...');
 
-    // Dynamic search simulation delays
-    setTimeout(() => {
-      setSearchPhaseText('Expanding search to 10 km... Matching ICU capabilities & ETA...');
-    }, 900);
+    try {
+      const payload = {
+        pickupLat: selectedPreset.lat,
+        pickupLng: selectedPreset.lng,
+        pickupAddress: pickupOption === 'manual' && manualAddress ? manualAddress : selectedPreset.address,
+        patientId: user?.id || 'user-patient-01',
+        patientName: user?.name || 'Rahul Sharma',
+        patientPhone: user?.phone || '+91 98765 43210',
+        conditionCategory: requiredType.includes('ICU') ? 'Critical / ICU Category' : 'Emergency Assistance',
+        requiredType,
+        destinationHospitalId: hospitalSelectionMode === 'manual' && selectedHospitalId ? selectedHospitalId : null,
+        emergencyNotes: emergencyNotes || 'Emergency dispatch triggered via fast modal',
+      };
 
-    setTimeout(async () => {
-      try {
-        const payload = {
-          pickupLat: selectedPreset.lat,
-          pickupLng: selectedPreset.lng,
-          pickupAddress: pickupOption === 'manual' && manualAddress ? manualAddress : selectedPreset.address,
-          patientId: user?.id || 'user-patient-01',
-          patientName: user?.name || 'Rahul Sharma',
-          patientPhone: user?.phone || '+91 98765 43210',
-          conditionCategory: requiredType.includes('ICU') ? 'Critical / ICU Category' : 'Emergency Assistance',
-          requiredType,
-          destinationHospitalId: hospitalSelectionMode === 'manual' && selectedHospitalId ? selectedHospitalId : null,
-          emergencyNotes: emergencyNotes || 'Emergency dispatch triggered via fast modal',
-        };
-
-        const res = await api.triggerSos(payload);
-        if (res.success && res.data) {
-          addToast({
-            title: 'Ambulance Dispatched!',
-            message: `${res.data.ambulanceType} (${res.data.callSign}) has accepted and is en route.`,
-            type: 'emergency',
-          });
-          onBookingCreated(res.data);
-          onClose();
-        }
-      } catch (err) {
+      const res = await api.triggerSos(payload);
+      if (res.success && res.data) {
         addToast({
-          title: 'Dispatch Failed',
-          message: err.message || 'Unable to connect with nearby fleets',
+          title: 'Ambulance Dispatched!',
+          message: `${res.data.ambulanceType} (${res.data.callSign}) has accepted and is en route.`,
           type: 'emergency',
         });
-      } finally {
-        setIsSearching(false);
+        onBookingCreated(res.data);
+        onClose();
+      } else {
+        throw new Error(res.message || 'Dispatch failed');
       }
-    }, 1800);
+    } catch (err) {
+      addToast({
+        title: 'Dispatch Failed',
+        message: err.message || 'Unable to connect with nearby fleets',
+        type: 'emergency',
+      });
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -137,57 +132,140 @@ export default function EmergencyModal({ isOpen, onClose, onBookingCreated, hosp
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Step 1: Location Detection */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
+          {/* Step 1: Location Detection & Tell Location Manually */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-rose-500" />
                 <span>1. Patient Pickup Location</span>
               </label>
+
+              {pickupOption === 'manual' ? (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                  ✓ Manual Pickup Active
+                </span>
+              ) : (
+                <span className="text-[10px] bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5 rounded-full font-bold">
+                  ● GPS Mode
+                </span>
+              )}
+            </div>
+
+            {/* Mode Segmented Controls */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
                 type="button"
                 onClick={handleDetectGps}
-                className="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 bg-rose-950/40 border border-rose-800/40 px-2.5 py-1 rounded-lg"
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  pickupOption === 'gps' || pickupOption === 'preset'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <LocateFixed className="w-3 h-3" />
-                <span>Detect Device GPS</span>
+                <LocateFixed className="w-3.5 h-3.5" />
+                <span>Auto-Detect GPS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPickupOption('manual')}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  pickupOption === 'manual'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>✍️ Tell Location Manually</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {INDIAN_CITY_PRESETS.map((preset, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPreset(preset);
-                    setPickupOption('preset');
-                  }}
-                  className={`p-3 rounded-xl border text-left text-xs transition-all ${
-                    selectedPreset.name === preset.name && pickupOption !== 'manual'
-                      ? 'bg-rose-600/15 border-rose-500 text-white font-medium shadow-md'
-                      : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <p className="font-bold text-slate-100">{preset.name}</p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{preset.address}</p>
-                </button>
-              ))}
-            </div>
+            {/* Manual Location Form View */}
+            {pickupOption === 'manual' ? (
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 animate-in fade-in">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    Enter Exact Patient Address / Landmark / House No.
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Flat 302, Tower B, Near Metro Pillar 142, South Extension Part 1"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 font-medium"
+                  />
+                </div>
 
-            {/* Optional Manual Address Input */}
-            <div className="mt-2">
-              <input
-                type="text"
-                placeholder="Or enter landmark / street address manually..."
-                value={manualAddress}
-                onChange={(e) => {
-                  setManualAddress(e.target.value);
-                  setPickupOption('manual');
-                }}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
-              />
-            </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Or Quick-Select Popular Landmark / Hub:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 text-[11px]">
+                    {[
+                      { name: 'Connaught Place Inner Circle', lat: 28.6315, lng: 77.2167 },
+                      { name: 'AIIMS Apex Trauma Gate 1', lat: 28.5672, lng: 77.2100 },
+                      { name: 'Select CITYWALK Mall, Saket', lat: 28.5284, lng: 77.2185 },
+                      { name: 'DLF Cyber Hub, Gurugram', lat: 28.4900, lng: 77.0900 },
+                      { name: 'Noida Sector 18 Metro', lat: 28.5700, lng: 77.3200 },
+                      { name: 'Hauz Khas Village Main Gate', lat: 28.5535, lng: 77.1945 },
+                      { name: 'Karol Bagh Market Gate 2', lat: 28.6520, lng: 77.1900 },
+                    ].map((landmark, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setManualAddress(landmark.name);
+                          setSelectedPreset({
+                            name: landmark.name,
+                            lat: landmark.lat,
+                            lng: landmark.lng,
+                            address: landmark.name,
+                          });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg border transition ${
+                          manualAddress === landmark.name
+                            ? 'bg-rose-600 text-white border-rose-500 font-bold'
+                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        📍 {landmark.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {manualAddress && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/80 text-[11px] text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      Manual location confirmed: <strong className="text-white">{manualAddress}</strong>. The ambulance driver will navigate directly to this address.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* GPS Presets View */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in">
+                {INDIAN_CITY_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPreset(preset);
+                      setPickupOption('preset');
+                    }}
+                    className={`p-3 rounded-xl border text-left text-xs transition-all ${
+                      selectedPreset.name === preset.name
+                        ? 'bg-rose-600/15 border-rose-500 text-white font-medium shadow-md'
+                        : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <p className="font-bold text-slate-100">{preset.name}</p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{preset.address}</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Step 2: Ambulance Requirement */}

@@ -11,9 +11,11 @@ import MassEmergencyPage from './pages/MassEmergencyPage';
 import AuthPage from './pages/AuthPage';
 import { api } from './services/api';
 import { useAuth } from './context/AuthContext';
+import { useSocket } from './context/SocketContext';
 
 export default function App() {
   const { user, role } = useAuth();
+  const { socket } = useSocket();
   const [activePage, setActivePage] = useState('landing');
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
   const [activeBooking, setActiveBooking] = useState(null);
@@ -37,6 +39,30 @@ export default function App() {
       }
     }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleUpdate = (updated) => {
+      setActiveBooking((prev) => {
+        if (prev && prev.id === updated.id) {
+          if (['COMPLETED', 'CANCELLED'].includes(updated.status)) {
+            return null;
+          }
+          return { ...prev, ...updated, currentLocation: updated.currentLocation || prev.currentLocation };
+        }
+        return prev;
+      });
+    };
+    const handleReset = () => {
+      setActiveBooking(null);
+    };
+    socket.on('booking:updated', handleUpdate);
+    socket.on('demo:reset', handleReset);
+    return () => {
+      socket.off('booking:updated', handleUpdate);
+      socket.off('demo:reset', handleReset);
+    };
+  }, [socket]);
 
   const handleBookingCreated = (newBooking) => {
     setActiveBooking(newBooking);

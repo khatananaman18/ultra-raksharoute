@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   UserCheck,
-  ChevronDown
+  ChevronDown,
+  LogIn
 } from 'lucide-react';
 
 export default function Navbar({ activePage, setActivePage }) {
@@ -50,6 +51,7 @@ export default function Navbar({ activePage, setActivePage }) {
     { id: 'hospital', label: 'Hospital Provider', icon: Hospital },
     { id: 'mass', label: 'Mass Disaster SOS', icon: Layers },
     { id: 'admin', label: 'Command Admin', icon: Activity },
+    { id: 'auth', label: 'Sign In', icon: LogIn },
   ];
 
   const handlePersonaSelect = async (newRole) => {
@@ -204,6 +206,18 @@ export default function Navbar({ activePage, setActivePage }) {
             </div>
 
             <button
+              onClick={() => setActivePage('auth')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
+                activePage === 'auth'
+                  ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-950/50'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:text-white'
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5 text-rose-400" />
+              <span>Login / Sign In</span>
+            </button>
+
+            <button
               onClick={() => setActivePage('patient')}
               className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-rose-900/40 transition"
             >
@@ -214,6 +228,13 @@ export default function Navbar({ activePage, setActivePage }) {
 
           {/* Mobile hamburger */}
           <div className="flex lg:hidden items-center gap-2">
+            <button
+              onClick={() => setActivePage('auth')}
+              className="bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+            >
+              <LogIn className="w-3 h-3 text-rose-400" />
+              <span>Login</span>
+            </button>
             <button
               onClick={() => setActivePage('patient')}
               className="bg-rose-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1"

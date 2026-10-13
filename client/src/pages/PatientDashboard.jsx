@@ -36,6 +36,9 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
   // Location state
   const [currentLocation, setCurrentLocation] = useState(INDIAN_CITY_PRESETS[1]); // Default AIIMS
   const [manualAddress, setManualAddress] = useState('');
+  const [manualStreet, setManualStreet] = useState('');
+  const [manualLandmark, setManualLandmark] = useState('');
+  const [isManualLocationMode, setIsManualLocationMode] = useState(false);
   const [selectedAmbulanceType, setSelectedAmbulanceType] = useState('ICU Ambulance');
 
   // Network data
@@ -58,7 +61,7 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
   // 1. Load initial hospitals and nearby ambulances
   useEffect(() => {
     loadData();
-  }, [currentLocation]);
+  }, [currentLocation, selectedAmbulanceType, searchRadiusKm]);
 
   const loadData = async () => {
     try {
@@ -87,6 +90,41 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
     }
   };
 
+  const handleConfirmManualLocation = (presetLandmark = null) => {
+    let finalAddr = '';
+    let lat = currentLocation.lat;
+    let lng = currentLocation.lng;
+
+    if (presetLandmark) {
+      finalAddr = presetLandmark.name;
+      lat = presetLandmark.lat;
+      lng = presetLandmark.lng;
+      setManualAddress(presetLandmark.name);
+    } else {
+      const parts = [];
+      if (manualStreet) parts.push(manualStreet);
+      if (manualAddress) parts.push(manualAddress);
+      else if (!manualStreet) parts.push(currentLocation.address);
+      if (manualLandmark) parts.push(`Near ${manualLandmark}`);
+      finalAddr = parts.join(', ');
+    }
+
+    const updated = {
+      ...currentLocation,
+      lat,
+      lng,
+      name: 'Manual Confirmed Pickup Point',
+      address: finalAddr,
+      isManual: true,
+    };
+    setCurrentLocation(updated);
+    addToast({
+      title: 'Manual Pickup Location Confirmed',
+      message: `Ambulance pilot will navigate directly to: ${finalAddr}`,
+      type: 'success',
+    });
+  };
+
   // 2. Real-time WebSocket Listeners
   useEffect(() => {
     if (!socket) return;
@@ -110,7 +148,11 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
     // Booking status changes
     const handleBookingUpdate = (updatedBooking) => {
       if (activeBooking && activeBooking.id === updatedBooking.id) {
-        setActiveBooking(updatedBooking);
+        setActiveBooking((prev) => ({
+          ...prev,
+          ...updatedBooking,
+          currentLocation: updatedBooking.currentLocation || prev?.currentLocation,
+        }));
 
         if (updatedBooking.status === 'COMPLETED') {
           confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -192,16 +234,17 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
         patientPhone: user?.phone || '+91 98765 43210',
         conditionCategory: ambulance.isICU ? 'Critical / ICU Emergency' : 'Standard Emergency',
         requiredType: ambulance.type,
+        ambulanceId: ambulance.id,
         destinationHospitalId: selectedHospital?.id || null,
         emergencyNotes: `Direct dispatch of ${ambulance.callSign}`,
       };
 
       const res = await api.triggerSos(payload);
-      if (res.success) {
+      if (res.success && res.data) {
         setActiveBooking(res.data);
         addToast({
           title: 'Ambulance Dispatched',
-          message: `${res.data.ambulanceType} (${res.data.callSign}) has been assigned.`,
+          message: `${res.data.ambulanceType} (${res.data.callSign}) has been assigned and dispatched.`,
           type: 'emergency',
         });
       }
@@ -387,42 +430,154 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Location & Matching Options (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Location Selector */}
+          {/* Patient Pickup Location (GPS & Tell Location Manually) */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm text-white flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-rose-500" />
-                <span>Current Pickup Location</span>
+                <span>Patient Pickup Location</span>
               </h3>
-              <span className="text-[11px] text-slate-400 font-mono">GPS Ready</span>
+              {isManualLocationMode ? (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                  ✓ Manual Mode Active
+                </span>
+              ) : (
+                <span className="text-[10px] bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5 rounded-full font-bold">
+                  ● GPS Mode
+                </span>
+              )}
             </div>
 
-            <div className="space-y-2">
-              {INDIAN_CITY_PRESETS.map((preset, idx) => (
+            {/* Mode Switcher */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setIsManualLocationMode(false)}
+                className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+                  !isManualLocationMode
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <LocateFixed className="w-3.5 h-3.5" />
+                <span>Auto-Detect GPS</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsManualLocationMode(true)}
+                className={`py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+                  isManualLocationMode
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>✍️ Tell Location Manually</span>
+              </button>
+            </div>
+
+            {/* Manual Location Form */}
+            {isManualLocationMode ? (
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs animate-in fade-in">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    Flat / House / Floor / Building Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Flat 402, Tower B, Green Valley Apartments"
+                    value={manualStreet}
+                    onChange={(e) => setManualStreet(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    Street, Colony, Sector, or City Area
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Ring Road, South Extension Part 1, New Delhi"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    Nearest Landmark / Gate Instructions for Ambulance Driver
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Opposite Metro Pillar 142, Blue Gate"
+                    value={manualLandmark}
+                    onChange={(e) => setManualLandmark(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Or Quick-Select Landmark Hub:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 text-[11px]">
+                    {[
+                      { name: 'Connaught Place Inner Circle', lat: 28.6315, lng: 77.2167 },
+                      { name: 'AIIMS Apex Trauma Gate 1', lat: 28.5672, lng: 77.2100 },
+                      { name: 'Select CITYWALK Mall, Saket', lat: 28.5284, lng: 77.2185 },
+                      { name: 'DLF Cyber Hub, Gurugram', lat: 28.4900, lng: 77.0900 },
+                      { name: 'Noida Sector 18 Metro Hub', lat: 28.5700, lng: 77.3200 },
+                      { name: 'Hauz Khas Village Main Gate', lat: 28.5535, lng: 77.1945 },
+                    ].map((landmark, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleConfirmManualLocation(landmark)}
+                        className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition"
+                      >
+                        📍 {landmark.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
-                  key={idx}
-                  onClick={() => setCurrentLocation(preset)}
-                  className={`w-full p-3 rounded-2xl border text-left text-xs transition ${
-                    currentLocation.name === preset.name
-                      ? 'bg-rose-600/15 border-rose-500 text-white font-semibold'
-                      : 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
-                  }`}
+                  type="button"
+                  onClick={() => handleConfirmManualLocation()}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 mt-2"
                 >
-                  <p className="font-bold">{preset.name}</p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{preset.address}</p>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirm Manual Pickup Location</span>
                 </button>
-              ))}
-            </div>
 
-            <div>
-              <input
-                type="text"
-                placeholder="Or type manual landmark / building..."
-                value={manualAddress}
-                onChange={(e) => setManualAddress(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
-              />
-            </div>
+                {currentLocation.address && (
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-800/80 text-[11px] text-emerald-300">
+                    <p className="font-bold text-white">Active Pickup Location:</p>
+                    <p className="text-slate-300 mt-0.5">{currentLocation.address}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* GPS Presets */
+              <div className="space-y-2 animate-in fade-in">
+                {INDIAN_CITY_PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentLocation(preset)}
+                    className={`w-full p-3 rounded-2xl border text-left text-xs transition ${
+                      currentLocation.name === preset.name
+                        ? 'bg-rose-600/15 border-rose-500 text-white font-semibold'
+                        : 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <p className="font-bold">{preset.name}</p>
+                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{preset.address}</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Ambulance Requirement Filter */}

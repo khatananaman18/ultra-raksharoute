@@ -31,7 +31,11 @@ router.get('/nearby', (req, res) => {
   const requiredType = req.query.type || 'ANY';
   const destinationHospitalId = req.query.hospitalId || null;
 
-  const available = db.getAllAmbulances().filter(a => a.availability === 'AVAILABLE');
+  let available = db.getAllAmbulances().filter(a => a.availability === 'AVAILABLE');
+  if (available.length === 0) {
+    available = db.getAllAmbulances();
+  }
+
   const ranked = rankAmbulances({
     pickupLat: lat,
     pickupLng: lng,
@@ -41,7 +45,11 @@ router.get('/nearby', (req, res) => {
     maxRadiusKm: radius,
   });
 
-  const withinRadius = ranked.filter(a => a.distanceKm <= radius);
+  let withinRadius = ranked.filter(a => a.distanceKm <= radius);
+  if (withinRadius.length === 0) {
+    withinRadius = ranked.slice(0, 5);
+  }
+
   res.json({
     success: true,
     count: withinRadius.length,
@@ -59,7 +67,11 @@ router.post('/search-radius', (req, res) => {
     destinationHospitalId = null,
   } = req.body;
 
-  const available = db.getAllAmbulances().filter(a => a.availability === 'AVAILABLE');
+  let available = db.getAllAmbulances().filter(a => a.availability === 'AVAILABLE');
+  if (available.length === 0) {
+    available = db.getAllAmbulances();
+  }
+
   const result = executeDynamicRadiusSearch({
     pickupLat: Number(lat),
     pickupLng: Number(lng),
