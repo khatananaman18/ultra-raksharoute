@@ -331,9 +331,17 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
               ambulances={nearbyAmbulances}
               activeAmbulance={{
                 id: activeBooking.ambulanceId,
+                callSign: activeBooking.callSign || 'LifeRescue Alpha-1',
+                vehicleNumber: activeBooking.vehicleNumber,
+                type: activeBooking.ambulanceType,
+                isICU: activeBooking.ambulanceType?.includes('ICU'),
+                driverName: activeBooking.driverName,
                 currentLocation: activeBooking.currentLocation || { lat: 28.5750, lng: 77.2130 },
+                currentEtaMinutes: activeBooking.currentEtaMinutes,
               }}
               destinationHospital={{
+                name: activeBooking.hospitalName || 'Destination Hospital',
+                address: activeBooking.destinationHospitalLocation?.address,
                 location: activeBooking.destinationHospitalLocation,
               }}
               className="h-full w-full"

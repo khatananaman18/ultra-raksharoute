@@ -345,9 +345,17 @@ export default function DriverDashboard() {
               patientLocation={activeTrip.pickupLocation}
               activeAmbulance={{
                 id: activeTrip.ambulanceId,
+                callSign: myAmbulance?.callSign || activeTrip.callSign || 'LifeRescue Alpha-1',
+                vehicleNumber: myAmbulance?.vehicleNumber || activeTrip.vehicleNumber,
+                type: activeTrip.ambulanceType,
+                isICU: activeTrip.ambulanceType?.includes('ICU'),
+                driverName: user?.name || 'Rajesh Kumar',
                 currentLocation: myAmbulance?.currentLocation || { lat: 28.5802, lng: 77.2155 },
+                currentEtaMinutes: activeTrip.currentEtaMinutes,
               }}
               destinationHospital={{
+                name: activeTrip.hospitalName || 'Destination Hospital',
+                address: activeTrip.destinationHospitalLocation?.address,
                 location: activeTrip.destinationHospitalLocation,
               }}
               className="h-full w-full"
