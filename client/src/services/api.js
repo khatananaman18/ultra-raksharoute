@@ -1,4 +1,8 @@
-const API_BASE = '/api';
+const API_BASE =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? `${window.location.protocol}//${window.location.hostname}:5050/api`
+    : '/api';
 
 function getAuthHeader() {
   const token = localStorage.getItem('raksha_token');

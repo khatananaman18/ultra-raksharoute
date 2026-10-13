@@ -2,6 +2,8 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { setupSocketIO } from './socket.js';
 import { simulationService } from './services/simulationService.js';
@@ -13,6 +15,10 @@ import bookingsRouter from './routes/bookings.js';
 import followupsRouter from './routes/followups.js';
 import analyticsRouter from './routes/analytics.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../../client/dist');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -20,7 +26,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   },
 });
 
@@ -28,7 +35,11 @@ setupSocketIO(io);
 simulationService.setSocketServer(io);
 
 // Middleware
-app.use(cors({ origin: '*' }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -58,6 +69,19 @@ app.use('/api/bookings', bookingsRouter);
 app.use('/api/followups', followupsRouter);
 app.use('/api/analytics', analyticsRouter);
 
+// Serve static client bundle if built
+app.use(express.static(distPath));
+
+// Fallback to client index.html for SPA routing
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) next();
+  });
+});
+
 // Error Handling
 app.use((err, req, res, next) => {
   console.error('API Error:', err);
@@ -69,7 +93,7 @@ app.use((err, req, res, next) => {
 
 // Start Server
 const PORT = config.port;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚑 RakshaRoute Dispatch Server running on port ${PORT}`);
   console.log(`📡 WebSocket Engine active`);
   console.log(`🏥 Healthcare Hub: ${config.defaultCity} (Lat: ${config.defaultCoordinates.lat}, Lng: ${config.defaultCoordinates.lng})`);
