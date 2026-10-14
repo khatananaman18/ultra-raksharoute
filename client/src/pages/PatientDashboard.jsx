@@ -193,6 +193,38 @@ export default function PatientDashboard({ onOpenSosModal, activeBooking, setAct
     };
   }, [socket, activeBooking]);
 
+  // 2b. Telemetry Polling Fallback (ensures live ambulance tracking works smoothly on Vercel)
+  useEffect(() => {
+    if (!activeBooking || ['COMPLETED', 'CANCELLED'].includes(activeBooking.status)) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.getBooking(activeBooking.id);
+        if (res.success && res.data) {
+          setActiveBooking((prev) => ({
+            ...prev,
+            ...res.data,
+            currentLocation: res.data.currentLocation || prev?.currentLocation,
+          }));
+
+          if (res.data.status === 'COMPLETED' && activeBooking.status !== 'COMPLETED') {
+            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+            setShowReviewModal(true);
+            addToast({
+              title: 'Trip Completed',
+              message: 'Patient safely arrived at hospital emergency trauma desk.',
+              type: 'success',
+            });
+          }
+        }
+      } catch (err) {
+        // silent fallback
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [activeBooking?.id, activeBooking?.status]);
+
   // 3. Dynamic Search Radius Trigger
   const handleDynamicSearch = async () => {
     setIsSearchingRadius(true);
